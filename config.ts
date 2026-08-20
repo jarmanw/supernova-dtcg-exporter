@@ -11,5 +11,4 @@ export type ExporterConfiguration = {
   outputFileName: string
   preserveVendorExtensions: boolean
   includeUnmappableTokenTypes: boolean
-  showGeneratedFileDisclaimer: boolean
 }

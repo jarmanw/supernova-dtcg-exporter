@@ -42,12 +42,5 @@
     "default": false,
     "title": "Include token types with no DTCG equivalent",
     "description": "When enabled, tokens with no sensible DTCG $type (blur, visibility, textCase, textDecoration as standalone tokens) are exported as $type: \"string\" with their raw value, tagged in $extensions. When disabled, they are skipped and reported in the build log."
-  },
-  {
-    "key": "showGeneratedFileDisclaimer",
-    "type": "boolean",
-    "default": true,
-    "title": "Show generated-file disclaimer",
-    "description": "Adds a top-level $description note that the file is auto-generated."
   }
 ]
