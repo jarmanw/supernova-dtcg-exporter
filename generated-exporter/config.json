@@ -4,7 +4,7 @@
       "key": "valueFormat",
       "type": "string",
       "allowedValues": ["flat", "structured"],
-      "default": "flat",
+      "default": "structured",
       "title": "Value format",
       "description": "'flat' emits legacy-compatible primitive values (hex color strings, \"16px\" dimension strings) that Style Dictionary v4/v5 reliably digest today. 'structured' emits full DTCG 2025.10 object values (colorSpace/components, {value,unit}) for teams already on a Style Dictionary release with full 2025.10 support."
     },
@@ -12,7 +12,7 @@
       "key": "outputFileStructure",
       "type": "string",
       "allowedValues": ["single-file", "per-type"],
-      "default": "single-file",
+      "default": "per-type",
       "title": "Output file structure",
       "description": "'single-file' writes one tokens.json. 'per-type' writes one file per Supernova token type (color.tokens.json, typography.tokens.json, etc)."
     },
