@@ -1,74 +1,142 @@
-import { Supernova, PulsarContext, RemoteVersionIdentifier, AnyOutputFile, TokenType, ColorToken } from "@supernovaio/sdk-exporters"
-import { ExporterConfiguration } from "../config"
-import { colorTokenToCSS } from "./content/token"
-import { FileHelper } from "@supernovaio/export-helpers"
+import {
+  Supernova,
+  PulsarContext,
+  RemoteVersionIdentifier,
+  AnyOutputFile,
+  AnyToken,
+} from "@supernovaio/sdk-exporters";
 
-/**
- * Export entrypoint.
- * When running `export` through extensions or pipelines, this function will be called.
- * Context contains information about the design system and version that is currently being exported.
- */
-Pulsar.export(async (sdk: Supernova, context: PulsarContext): Promise<Array<AnyOutputFile>> => {
-  // Fetch data from design system that is currently being exported (context)
-  const remoteVersionIdentifier: RemoteVersionIdentifier = {
-    designSystemId: context.dsId,
-    versionId: context.versionId,
-  }
+import { ExporterConfiguration } from "../config";
+import { FileHelper } from "@supernovaio/export-helpers";
 
-  // Fetch the necessary data
-  let tokens = await sdk.tokens.getTokens(remoteVersionIdentifier)
-  let tokenGroups = await sdk.tokens.getTokenGroups(remoteVersionIdentifier)
+import { buildDtcgTree, PlacedToken } from "./build-tree";
+import { convertToken } from "./convert";
 
-  // Filter by brand, if specified by the VSCode extension or pipeline configuration
-  if (context.brandId) {
-    const brands = await sdk.brands.getBrands(remoteVersionIdentifier)
-    const brand = brands.find((brand) => brand.id === context.brandId || brand.idInVersion === context.brandId)
-    if (!brand) {
-      throw new Error(`Unable to find brand ${context.brandId}.`)
+export const exportConfiguration = Pulsar.exportConfig<ExporterConfiguration>();
+
+Pulsar.export(
+  async (
+    sdk: Supernova,
+    context: PulsarContext,
+  ): Promise<Array<AnyOutputFile>> => {
+    // Fetch data from design system that is currently being exported (context)
+    const remoteVersionIdentifier: RemoteVersionIdentifier = {
+      designSystemId: context.dsId,
+      versionId: context.versionId,
+    };
+
+    // ------------------------------------------------------------
+    // Fetch tokens and groups
+    // ------------------------------------------------------------
+
+    let tokens = await sdk.tokens.getTokens(remoteVersionIdentifier);
+    let tokenGroups = await sdk.tokens.getTokenGroups(remoteVersionIdentifier);
+
+    // ------------------------------------------------------------
+    // Apply brand filtering
+    // ------------------------------------------------------------
+
+    if (context.brandId) {
+      const brands = await sdk.brands.getBrands(remoteVersionIdentifier);
+
+      const brand = brands.find(
+        (brand) =>
+          brand.id === context.brandId || brand.idInVersion === context.brandId,
+      );
+
+      if (!brand) {
+        throw new Error(`Unable to find brand ${context.brandId}.`);
+      }
+
+      tokens = tokens.filter((token) => token.brandId === brand.id);
+
+      tokenGroups = tokenGroups.filter((group) => group.brandId === brand.id);
     }
 
-    tokens = tokens.filter((token) => token.brandId === brand.id)
-    tokenGroups = tokenGroups.filter((tokenGroup) => tokenGroup.brandId === brand.id)
-  }
+    // ------------------------------------------------------------
+    // Apply themes
+    // ------------------------------------------------------------
 
-  // Apply themes, if specified
-  if (context.themeIds && context.themeIds.length > 0) {
-    const themes = await sdk.tokens.getTokenThemes(remoteVersionIdentifier)
+    if (context.themeIds && context.themeIds.length > 0) {
+      const themes = await sdk.tokens.getTokenThemes(remoteVersionIdentifier);
 
-    const themesToApply = context.themeIds.map((themeId) => {
-      const theme = themes.find((theme) => theme.id === themeId || theme.idInVersion === themeId)
-      if (!theme) {
-        throw new Error(`Unable to find theme ${themeId}.`)
+      const themesToApply = context.themeIds.map((themeId) => {
+        const theme = themes.find(
+          (theme) => theme.id === themeId || theme.idInVersion === themeId,
+        );
+
+        if (!theme) {
+          throw new Error(`Unable to find theme ${themeId}.`);
+        }
+
+        return theme;
+      });
+
+      tokens = sdk.tokens.computeTokensByApplyingThemes(
+        tokens,
+        tokens,
+        themesToApply,
+      );
+    }
+
+    // ------------------------------------------------------------
+    // Convert Supernova tokens into DTCG tokens
+    // ------------------------------------------------------------
+
+    const placedTokens: PlacedToken[] = [];
+    const warnings: string[] = [];
+
+    for (const token of tokens) {
+      const typedToken = token as AnyToken;
+
+      const converted = convertToken(
+        typedToken.tokenType,
+        typedToken.name,
+        typedToken.description,
+        typedToken.value,
+        exportConfiguration,
+      );
+
+      warnings.push(...converted.warnings);
+
+      if (!converted.token) {
+        continue;
       }
-      return theme
-    })
 
-    tokens = sdk.tokens.computeTokensByApplyingThemes(tokens, tokens, themesToApply)
-  }
+      placedTokens.push({
+        path: typedToken.tokenPath ?? [typedToken.name],
+        token: converted.token,
+      });
+    }
 
-  // Convert all color tokens to CSS variables
-  const mappedTokens = new Map(tokens.map((token) => [token.id, token]))
-  const cssVariables = tokens
-    .filter((t) => t.tokenType === TokenType.color)
-    .map((token) => colorTokenToCSS(token as ColorToken, mappedTokens, tokenGroups))
-    .join("\n")
+    // ------------------------------------------------------------
+    // Build DTCG document
+    // ------------------------------------------------------------
 
-  // Create CSS file content
-  let content = `:root {\n${cssVariables}\n}`
-  if (exportConfiguration.generateDisclaimer) {
-    // Add disclaimer to every file if enabled
-    content = `/* This file was generated by Supernova, don't change by hand */\n${content}`
-  }
+    const document = buildDtcgTree(placedTokens);
 
-  // Create output file and return it
-  return [
-    FileHelper.createTextFile({
-      relativePath: "./",
-      fileName: "colors.css",
-      content: content,
-    }),
-  ]
-})
+    let content = JSON.stringify(document, null, 2);
 
-/** Exporter configuration. Adheres to the `ExporterConfiguration` interface and its content comes from the resolved default configuration + user overrides of various configuration keys */
-export const exportConfiguration = Pulsar.exportConfig<ExporterConfiguration>()
+    // ------------------------------------------------------------
+    // Optional disclaimer
+    // ------------------------------------------------------------
+
+    if (exportConfiguration.showGeneratedFileDisclaimer) {
+      content =
+        `/* This file was generated by Supernova, don't change by hand */\n` +
+        content;
+    }
+
+    // ------------------------------------------------------------
+    // Output
+    // ------------------------------------------------------------
+
+    return [
+      FileHelper.createTextFile({
+        relativePath: "./",
+        fileName: "tokens.json",
+        content,
+      }),
+    ];
+  },
+);

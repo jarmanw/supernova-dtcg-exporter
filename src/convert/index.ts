@@ -19,7 +19,7 @@ export type ConversionResult = {
 };
 
 /**
- * Supernova token types that all resolve to a plain {unit, measure} value
+ * Supnova token types that all resolve to a plain {unit, measure} value
  * and map cleanly onto DTCG's single generic `dimension` $type.
  * VERIFY these string keys against the live TokenType enum.
  */
