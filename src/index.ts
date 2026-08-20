@@ -1,120 +1,74 @@
-/**
- * Entry point Supernova's Pulsar engine invokes.
- *
- * VERIFY the exact signature (arg names/order, how `sdk`/`context` are
- * provided) against the live @supernovaio/sdk-exporters types in VS Code --
- * the docs snippet only confirmed `Pulsar.exportConfig<T>()` for reading
- * config, and `sdk.tokens.getTokens(...)` / `sdk.tokens.getTokenGroups(...)`
- * for reading data. The plumbing below is a best-effort shape; the actual
- * conversion logic (buildDtcgDocument) is decoupled from it on purpose so
- * fixing this adapter doesn't mean touching the conversion code.
- */
-import { Pulsar } from "@supernovaio/sdk-exporters" // VERIFY import path
+import { Supernova, PulsarContext, RemoteVersionIdentifier, AnyOutputFile, TokenType, ColorToken } from "@supernovaio/sdk-exporters"
 import { ExporterConfiguration } from "../config"
-import { convertToken } from "./convert"
-import { buildDtcgTree, PlacedToken } from "./build-tree"
-import { buildTokenPath, pathToAliasReference, MinimalGroup } from "./util/path"
-import { DtcgDocument } from "./dtcg-types"
-
-const exportConfiguration = Pulsar.exportConfig<ExporterConfiguration>()
-
-export default async function exportDtcg(sdk: any, context: any): Promise<void> {
-  const { designSystemId, versionId } = context
-
-  const [tokens, groups] = await Promise.all([
-    sdk.tokens.getTokens({ designSystemId, versionId }),
-    sdk.tokens.getTokenGroups({ designSystemId, versionId }),
-  ])
-
-  const { documents, warnings } = buildDtcgDocuments(tokens, groups, exportConfiguration)
-
-  for (const [fileName, doc] of documents.entries()) {
-    await sdk.files.write(`${fileName}.tokens.json`, JSON.stringify(doc, null, 2)) // VERIFY file-write API
-  }
-
-  if (warnings.length) {
-    console.warn(`DTCG export completed with ${warnings.length} warning(s):`)
-    for (const w of warnings) console.warn(`  - ${w}`)
-  }
-}
+import { colorTokenToCSS } from "./content/token"
+import { FileHelper } from "@supernovaio/export-helpers"
 
 /**
- * Pure, SDK-agnostic core: takes plain token/group data and config, returns
- * the file(s) to write plus a flat warning log. Kept separate from the
- * Pulsar plumbing above so it can be unit tested without the SDK.
+ * Export entrypoint.
+ * When running `export` through extensions or pipelines, this function will be called.
+ * Context contains information about the design system and version that is currently being exported.
  */
-export function buildDtcgDocuments(
-  tokens: any[],
-  groups: MinimalGroup[],
-  config: ExporterConfiguration,
-): { documents: Map<string, DtcgDocument>; warnings: string[] } {
-  const warnings: string[] = []
-  const groupsById = new Map(groups.map((g) => [g.id, g]))
-
-  // Pass 1: compute every token's DTCG path so aliases can reference them.
-  const pathByTokenId = new Map<string, string[]>()
-  for (const token of tokens) {
-    pathByTokenId.set(token.id, buildTokenPath(token.name, token.parentGroupId, groupsById))
+Pulsar.export(async (sdk: Supernova, context: PulsarContext): Promise<Array<AnyOutputFile>> => {
+  // Fetch data from design system that is currently being exported (context)
+  const remoteVersionIdentifier: RemoteVersionIdentifier = {
+    designSystemId: context.dsId,
+    versionId: context.versionId,
   }
 
-  // Pass 2: convert values, preferring an alias reference over a resolved
-  // literal whenever the token is a *pure* reference (not a partial mixin --
-  // flat DTCG syntax can only alias a whole token, so mixins are resolved
-  // to literals with a warning; see convertToken's composite handlers for
-  // the sub-property-level mixin cases like shadow color).
-  const placed: PlacedToken[] = []
-  for (const token of tokens) {
-    const path = pathByTokenId.get(token.id)!
-    const topLevelReferenceId: string | null = token.value?.referencedTokenId ?? null
+  // Fetch the necessary data
+  let tokens = await sdk.tokens.getTokens(remoteVersionIdentifier)
+  let tokenGroups = await sdk.tokens.getTokenGroups(remoteVersionIdentifier)
 
-    if (topLevelReferenceId) {
-      const targetPath = pathByTokenId.get(topLevelReferenceId)
-      if (!targetPath) {
-        warnings.push(`"${token.name}" references an unresolvable token id "${topLevelReferenceId}" -- exporting as a raw value instead.`)
-      } else {
-        // $type intentionally omitted: per spec 5.2.2, an alias's type
-        // resolves from the token it references. Style Dictionary v4/v5
-        // both handle this; if you hit a platform that insists on an
-        // explicit $type even on aliases, look up the referenced token's
-        // resolved type here and add it.
-        placed.push({
-          path,
-          token: {
-            $value: pathToAliasReference(targetPath),
-            ...(token.description ? { $description: token.description } : {}),
-          },
-        })
-        continue
+  // Filter by brand, if specified by the VSCode extension or pipeline configuration
+  if (context.brandId) {
+    const brands = await sdk.brands.getBrands(remoteVersionIdentifier)
+    const brand = brands.find((brand) => brand.id === context.brandId || brand.idInVersion === context.brandId)
+    if (!brand) {
+      throw new Error(`Unable to find brand ${context.brandId}.`)
+    }
+
+    tokens = tokens.filter((token) => token.brandId === brand.id)
+    tokenGroups = tokenGroups.filter((tokenGroup) => tokenGroup.brandId === brand.id)
+  }
+
+  // Apply themes, if specified
+  if (context.themeIds && context.themeIds.length > 0) {
+    const themes = await sdk.tokens.getTokenThemes(remoteVersionIdentifier)
+
+    const themesToApply = context.themeIds.map((themeId) => {
+      const theme = themes.find((theme) => theme.id === themeId || theme.idInVersion === themeId)
+      if (!theme) {
+        throw new Error(`Unable to find theme ${themeId}.`)
       }
-    }
+      return theme
+    })
 
-    const result = convertToken(token.tokenType, token.name, token.description, token.value, config)
-    warnings.push(...result.warnings)
-    if (result.token) {
-      placed.push({ path, token: result.token })
-    }
+    tokens = sdk.tokens.computeTokensByApplyingThemes(tokens, tokens, themesToApply)
   }
 
-  if (config.outputFileStructure === "single-file") {
-    const doc = buildDtcgTree(placed)
-    if (config.showGeneratedFileDisclaimer) {
-      ;(doc as any).$description = "Auto-generated by the Supernova DTCG exporter. Do not edit by hand."
-    }
-    return { documents: new Map([[config.outputFileName, doc]]), warnings }
+  // Convert all color tokens to CSS variables
+  const mappedTokens = new Map(tokens.map((token) => [token.id, token]))
+  const cssVariables = tokens
+    .filter((t) => t.tokenType === TokenType.color)
+    .map((token) => colorTokenToCSS(token as ColorToken, mappedTokens, tokenGroups))
+    .join("\n")
+
+  // Create CSS file content
+  let content = `:root {\n${cssVariables}\n}`
+  if (exportConfiguration.generateDisclaimer) {
+    // Add disclaimer to every file if enabled
+    content = `/* This file was generated by Supernova, don't change by hand */\n${content}`
   }
 
-  // per-type: split by the *original* Supernova token type, not by DTCG
-  // $type, so e.g. size/space/dimension still land in separate files if
-  // that matches how the design system is organized.
-  const byType = new Map<string, PlacedToken[]>()
-  for (const p of placed) {
-    const t = (p.token as any).$type ?? "alias"
-    if (!byType.has(t)) byType.set(t, [])
-    byType.get(t)!.push(p)
-  }
-  const documents = new Map<string, DtcgDocument>()
-  for (const [type, group] of byType.entries()) {
-    documents.set(type, buildDtcgTree(group))
-  }
-  return { documents, warnings }
-}
+  // Create output file and return it
+  return [
+    FileHelper.createTextFile({
+      relativePath: "./",
+      fileName: "colors.css",
+      content: content,
+    }),
+  ]
+})
+
+/** Exporter configuration. Adheres to the `ExporterConfiguration` interface and its content comes from the resolved default configuration + user overrides of various configuration keys */
+export const exportConfiguration = Pulsar.exportConfig<ExporterConfiguration>()

@@ -2,9 +2,9 @@
   "id": "yourorg.exporter-dtcg-json",
   "name": "DTCG Token Exporter",
   "description": "Exports design tokens as W3C DTCG-compliant JSON, ready for Style Dictionary.",
-  "author": "Your Name",
-  "organization": "Your Org",
+  "author": "Will J",
+  "organization": "Qantas",
   "version": "0.1.0",
-  "engine": "2.0.0",
+  "engine": "latest",
   "executable": "/dist/index.js"
 }

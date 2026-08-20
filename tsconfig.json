@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "CommonJS",
+    "baseUrl": "./",
+    "target": "es2021",
+    "outDir": "build",
+    "module": "commonjs",
     "moduleResolution": "node",
-    "lib": ["ES2020"],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "rootDir": "."
-  },
-  "include": ["src/**/*.ts", "config.ts"]
+    "strictNullChecks": true,
+    "typeRoots": [
+      "src/*",
+      "types/*"
+    ],
+    "lib": ["ES2021", "dom"],
+  }
 }
