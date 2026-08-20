@@ -4,7 +4,7 @@
   "description": "Exports design tokens as W3C DTCG-compliant JSON, ready for Style Dictionary.",
   "author": "Will J",
   "organization": "Qantas",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "usesBrands": true,
   "usesThemes": true,
   "executable": "/dist/build.js",

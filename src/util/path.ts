@@ -45,6 +45,22 @@ export function buildTokenPath(tokenName: string, groupId: string, groupsById: M
   return [...buildGroupAncestryPath(groupId, groupsById), sanitizeSegment(tokenName)]
 }
 
+/**
+ * Preferred path resolution: `Token.tokenPath` (confirmed real, from
+ * SDKToken.d.ts) is the group-ancestry breadcrumb -- it does NOT include
+ * the token's own name, so that must be appended. Falls back to walking
+ * `parentGroupId` through the group map on the rarer case `tokenPath` is
+ * null (still using the group-ancestry walker above, whose field names
+ * are unverified against the real `TokenGroup` type).
+ */
+export function resolveTokenPath(
+  token: { name: string; tokenPath: string[] | null; parentGroupId: string },
+  groupsById: Map<string, MinimalGroup>,
+): string[] {
+  const ancestry = token.tokenPath && token.tokenPath.length > 0 ? token.tokenPath.map(sanitizeSegment) : buildGroupAncestryPath(token.parentGroupId, groupsById)
+  return [...ancestry, sanitizeSegment(token.name)]
+}
+
 export function pathToAliasReference(path: string[]): string {
   return `{${path.join(".")}}`
 }
