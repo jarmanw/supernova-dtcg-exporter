@@ -6,4 +6,10 @@
 export type ExporterConfiguration = {
   /** When enabled, generate a disclaimer showing the fact that the file was generated automatically and should not be changed manually will appear in all files */
   generateDisclaimer: boolean
+  valueFormat: "flat" | "structured"
+  outputFileStructure: "single-file" | "per-type"
+  outputFileName: string
+  preserveVendorExtensions: boolean
+  includeUnmappableTokenTypes: boolean
+  showGeneratedFileDisclaimer: boolean
 }
