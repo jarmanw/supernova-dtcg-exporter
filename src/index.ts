@@ -89,21 +89,12 @@ Pulsar.export(
     for (const token of tokens) {
       const typedToken = token as AnyToken;
 
-      console.log("TOKEN:", typedToken.name, typedToken.tokenType);
-
       const converted = convertToken(
         typedToken.tokenType,
         typedToken.name,
         typedToken.description,
         typedToken.value,
         exportConfiguration,
-      );
-
-      console.log(
-        "CONVERTED:",
-        typedToken.name,
-        converted.token ? "OK" : "SKIPPED",
-        converted.warnings,
       );
 
       warnings.push(...converted.warnings);
@@ -117,8 +108,6 @@ Pulsar.export(
         token: converted.token,
       });
     }
-
-    console.log("PLACED TOKENS:", placedTokens.length);
 
     // ------------------------------------------------------------
     // Build DTCG document
