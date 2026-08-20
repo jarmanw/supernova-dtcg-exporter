@@ -1,16 +1,13 @@
 {
-    "id": "[COMPANY_NAME].exporter-[PLATFORM]",
-    "name": "[PLATFORM] Exporter",
-    "description": "Export your design system data into [PLATFORM / TECHNOLOGY]",
-    "author": "[AUTHOR_NAME]",
-    "organization": "[COMPANY_NAME]",
-    "homepage": "[COMPANY_WEBSITE or delete]",
-    "version": "1.0.0",
-    "usesBrands": true,
-    "usesThemes": true,
-    "executable": "/dist/build.js",
-    "engine": "latest",
-    "tags": [
-        "[ANYTHING_YOU_WANT, like 'Tokens', 'Assets' etc.]"
-    ]
+  "id": "qantas.exporter-dtcg-json",
+  "name": "W3C DTCG Exporter",
+  "description": "Exports design tokens as W3C DTCG-compliant JSON, ready for Style Dictionary.",
+  "author": "Will J",
+  "organization": "Qantas",
+  "version": "0.1.1",
+  "usesBrands": false,
+  "usesThemes": false,
+  "executable": "/dist/build.js",
+  "engine": "latest",
+  "tags": ["DTCG, JSON, W3C, Style Dictionary"]
 }
