@@ -19,7 +19,7 @@
     "options": ["flat", "structured"],
     "default": "structured",
     "title": "Value format",
-    "description": "'flat' emits legacy-compatible primitive values (hex color strings, \"16px\" dimension strings) that Style Dictionary v4/v5 reliably digest today. 'structured' emits full DTCG 2025.10 object values (colorSpace/components, {value,unit}) for teams already on a Style Dictionary release with full 2025.10 support."
+    "description": "'flat' emits legacy-compatible primitive values (hex color strings, \"16px\" dimension strings) that Style Dictionary v4/v5 reliably digest today. 'structured' emits DTCG color objects (sRGB components, alpha, and a hex fallback) and structured dimensions ({value,unit}) for teams already on a Style Dictionary release with full DTCG support."
   },
   {
     "key": "outputFileStructure",
