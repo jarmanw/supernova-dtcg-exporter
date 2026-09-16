@@ -22,20 +22,23 @@ export type GradientConversionInput = {
   stops: Array<{ position: number; color: SupernovaColorLike }>
 }
 
-export function convertGradient(input: GradientConversionInput, config: ExporterConfiguration): { value: unknown[]; warnings: string[]; extensions?: Record<string, unknown> } {
+export function convertGradient(input: GradientConversionInput | GradientConversionInput[], config: ExporterConfiguration): { value: unknown[]; warnings: string[]; extensions?: Record<string, unknown> } {
   const structured = config.valueFormat === "structured"
+  const layers = Array.isArray(input) ? input : [input]
+  const layer = layers[0]
 
-  const value = input.stops.map((stop) => ({
+  const value = layer.stops.map((stop) => ({
     color: structured ? toStructuredColor(stop.color) : toHexString(stop.color),
     position: round(stop.position),
   }))
 
-  const warnings = [
-    `Gradient direction/type (${input.type}) and coordinates are not representable in DTCG's gradient type -- ${config.preserveVendorExtensions ? "preserved in $extensions but NOT used by downstream CSS/platform output" : "dropped"}. Verify rendered gradients after the Style Dictionary build.`,
-  ]
+  const warnings = [`Gradient direction/type (${layer.type}) and coordinates are not representable in DTCG's gradient type -- ${config.preserveVendorExtensions ? "preserved in $extensions but NOT used by downstream CSS/platform output" : "dropped"}. Verify rendered gradients after the Style Dictionary build.`]
+  if (layers.length > 1) {
+    warnings.push(`Gradient has ${layers.length} layers; only the first layer can be represented by DTCG.`)
+  }
 
   const extensions = config.preserveVendorExtensions
-    ? { type: input.type, from: input.from, to: input.to, aspectRatio: input.aspectRatio }
+    ? { type: layer.type, from: layer.from, to: layer.to, aspectRatio: layer.aspectRatio, layers: layers.length > 1 ? layers.slice(1) : undefined }
     : undefined
 
   return { value, warnings, extensions }

@@ -19,38 +19,42 @@ export type ShadowConversionInput = {
   y: { measure: number; unit: string }
   radius: { measure: number; unit: string }
   spread: { measure: number; unit: string }
-  opacity: { measure: number }
+  opacity?: { measure: number }
   type: string // e.g. "outer" | "inner" -- verify against SDK
 }
 
-export function convertShadow(input: ShadowConversionInput, config: ExporterConfiguration): { value: Record<string, unknown>; warnings: string[] } {
+export function convertShadow(input: ShadowConversionInput | ShadowConversionInput[], config: ExporterConfiguration): { value: Record<string, unknown>[]; warnings: string[] } {
   const warnings: string[] = []
   const structured = config.valueFormat === "structured"
 
-  const dim = (d: { measure: number; unit: string }, label: string) => {
-    if (!isPxOrRemUnit(d.unit)) {
-      warnings.push(`Shadow ${label} unit "${d.unit}" is not px/rem -- exported as a raw number.`)
-      return d.measure
+  const values = (Array.isArray(input) ? input : [input]).map((layer) => {
+    const dim = (d: { measure: number; unit: string }, label: string) => {
+      if (!isPxOrRemUnit(d.unit)) {
+        warnings.push(`Shadow ${label} unit "${d.unit}" is not px/rem -- exported as a raw number.`)
+        return d.measure
+      }
+      return structured ? formatStructuredDimension(d.measure, d.unit) : formatFlatDimension(d.measure, d.unit)
     }
-    return structured ? formatStructuredDimension(d.measure, d.unit) : formatFlatDimension(d.measure, d.unit)
-  }
 
-  const combinedColor: SupernovaColorLike = {
-    color: input.color.color,
-    opacity: { measure: (input.color.opacity?.measure ?? 1) * (input.opacity?.measure ?? 1) },
-  }
+    const combinedColor: SupernovaColorLike = {
+      color: layer.color.color,
+      opacity: { measure: (layer.color.opacity?.measure ?? 1) * (layer.opacity?.measure ?? 1) },
+    }
 
-  const value: Record<string, unknown> = {
-    color: structured ? toStructuredColor(combinedColor) : toHexString(combinedColor),
-    offsetX: dim(input.x, "offsetX"),
-    offsetY: dim(input.y, "offsetY"),
-    blur: dim(input.radius, "blur"),
-    spread: dim(input.spread, "spread"),
-  }
+    const value: Record<string, unknown> = {
+      color: structured ? toStructuredColor(combinedColor) : toHexString(combinedColor),
+      offsetX: dim(layer.x, "offsetX"),
+      offsetY: dim(layer.y, "offsetY"),
+      blur: dim(layer.radius, "blur"),
+      spread: dim(layer.spread, "spread"),
+    }
 
-  if (input.type && input.type.toLowerCase().includes("inner")) {
-    value.inset = true
-  }
+    if (layer.type && layer.type.toLowerCase().includes("inner")) {
+      value.inset = true
+    }
 
-  return { value, warnings }
+    return value
+  })
+
+  return { value: values, warnings }
 }
