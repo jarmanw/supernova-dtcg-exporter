@@ -1,5 +1,5 @@
 import { ExporterConfiguration } from "../../config"
-import { toHexString, toStructuredColor, SupernovaColorLike } from "./color"
+import { colorValueToDtcg, SupernovaColorLike, ColorReferenceResolver } from "./color"
 
 /**
  * DTCG `gradient` is JUST an array of { color, position } stops -- no
@@ -22,13 +22,12 @@ export type GradientConversionInput = {
   stops: Array<{ position: number; color: SupernovaColorLike }>
 }
 
-export function convertGradient(input: GradientConversionInput | GradientConversionInput[], config: ExporterConfiguration): { value: unknown[]; warnings: string[]; extensions?: Record<string, unknown> } {
-  const structured = config.valueFormat === "structured"
+export function convertGradient(input: GradientConversionInput | GradientConversionInput[], config: ExporterConfiguration, resolveReference?: ColorReferenceResolver): { value: unknown[]; warnings: string[]; extensions?: Record<string, unknown> } {
   const layers = Array.isArray(input) ? input : [input]
   const layer = layers[0]
 
   const value = layer.stops.map((stop) => ({
-    color: structured ? toStructuredColor(stop.color) : toHexString(stop.color),
+    color: colorValueToDtcg(stop.color, config, resolveReference),
     position: round(stop.position),
   }))
 

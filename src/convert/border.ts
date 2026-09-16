@@ -1,5 +1,5 @@
 import { ExporterConfiguration } from "../../config"
-import { toHexString, toStructuredColor, SupernovaColorLike } from "./color"
+import { colorValueToDtcg, SupernovaColorLike, ColorReferenceResolver } from "./color"
 import { formatFlatDimension, formatStructuredDimension, isPxOrRemUnit } from "../util/units"
 
 /**
@@ -18,18 +18,17 @@ export type BorderConversionInput = {
   style: string // "solid" | "dotted" | "dashed" | "groove" -- assumed to already match DTCG strokeStyle keywords
 }
 
-export function convertBorder(input: BorderConversionInput, config: ExporterConfiguration): { value: Record<string, unknown>; warnings: string[]; extensions?: Record<string, unknown> } {
+export function convertBorder(input: BorderConversionInput, config: ExporterConfiguration, resolveReference?: ColorReferenceResolver): { value: Record<string, unknown>; warnings: string[]; extensions?: Record<string, unknown> } {
   const warnings: string[] = []
-  const structured = config.valueFormat === "structured"
 
   const width = isPxOrRemUnit(input.width.unit)
-    ? structured
+    ? config.valueFormat === "structured"
       ? formatStructuredDimension(input.width.measure, input.width.unit)
       : formatFlatDimension(input.width.measure, input.width.unit)
     : (warnings.push(`Border width unit "${input.width.unit}" is not px/rem -- exported as a raw number.`), input.width.measure)
 
   const value: Record<string, unknown> = {
-    color: structured ? toStructuredColor(input.color) : toHexString(input.color),
+    color: colorValueToDtcg(input.color, config, resolveReference),
     width,
     style: input.style,
   }

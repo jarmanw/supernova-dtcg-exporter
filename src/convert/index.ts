@@ -1,6 +1,6 @@
 import { ExporterConfiguration } from "../../config";
 import { DtcgToken, DtcgType, EXTENSION_NAMESPACE } from "../dtcg-types";
-import { toHexString, toStructuredColor, SupernovaColorLike } from "./color";
+import { ColorReferenceResolver, colorValueToDtcg, SupernovaColorLike } from "./color";
 import { normalizeFontWeight } from "./fontWeight";
 import { convertTypography, TypographyConversionInput } from "./typography";
 import { convertShadow, ShadowConversionInput } from "./shadow";
@@ -41,6 +41,7 @@ export function convertToken(
   value: any,
   config: ExporterConfiguration,
   reference?: string,
+  resolveReference?: ColorReferenceResolver,
 ): ConversionResult {
   const warnings: string[] = [];
   const normalizedTokenType = normalizeTokenType(tokenType);
@@ -61,10 +62,7 @@ export function convertToken(
   // --- Color -------------------------------------------------------------
   if (normalizedTokenType === "color") {
     const v = value as SupernovaColorLike;
-    const $value =
-      config.valueFormat === "structured"
-        ? toStructuredColor(v)
-        : toHexString(v);
+    const $value = colorValueToDtcg(v, config, resolveReference);
     return { token: base("color", $value), warnings };
   }
 
@@ -130,7 +128,7 @@ export function convertToken(
   // --- Composite: shadow -------------------------------------------------------
   if (normalizedTokenType === "shadow") {
     const v = value as ShadowConversionInput;
-    const result = convertShadow(v, config);
+    const result = convertShadow(v, config, resolveReference);
     warnings.push(...result.warnings.map((w) => `"${name}": ${w}`));
     return { token: base("shadow", result.value), warnings };
   }
@@ -138,7 +136,7 @@ export function convertToken(
   // --- Composite: border ---------------------------------------------------
   if (normalizedTokenType === "border") {
     const v = value as BorderConversionInput;
-    const result = convertBorder(v, config);
+    const result = convertBorder(v, config, resolveReference);
     warnings.push(...result.warnings.map((w) => `"${name}": ${w}`));
     return { token: base("border", result.value, result.extensions), warnings };
   }
@@ -146,7 +144,7 @@ export function convertToken(
   // --- Composite: gradient -------------------------------------------------
   if (normalizedTokenType === "gradient") {
     const v = value as GradientConversionInput;
-    const result = convertGradient(v, config);
+    const result = convertGradient(v, config, resolveReference);
     warnings.push(...result.warnings.map((w) => `"${name}": ${w}`));
     return {
       token: base("gradient", result.value, result.extensions),

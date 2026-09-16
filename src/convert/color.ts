@@ -7,6 +7,23 @@
 export type SupernovaColorLike = {
   color: { r: number; g: number; b: number }
   opacity: { measure: number } // measure assumed 0-1 for opacity
+  referencedTokenId?: string | null
+}
+
+export type ColorReferenceResolver = (tokenId: string) => string | undefined
+
+export function colorValueToDtcg(
+  value: SupernovaColorLike,
+  config: { colorFormat: "hex" | "structured" },
+  resolveReference?: ColorReferenceResolver,
+): unknown {
+  const reference = value.referencedTokenId
+    ? resolveReference?.(value.referencedTokenId)
+    : undefined
+  if (reference) return reference
+  return config.colorFormat === "structured"
+    ? toStructuredColor(value)
+    : toHexString(value)
 }
 
 function to255(channel: number): number {

@@ -128,6 +128,7 @@ Pulsar.export(
         typedToken.value,
         exportConfiguration,
         reference,
+        (tokenId) => tokenPathsById.get(tokenId),
       );
 
       warnings.push(...converted.warnings);

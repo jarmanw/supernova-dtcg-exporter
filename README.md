@@ -31,3 +31,4 @@ Here is a list of all the configuration options this exporter provides:
 
 - **generateDisclaimer:** Toggle to show a disclaimer indicating the file is auto-generated.
 - **includeDescriptions:** Toggle whether Supernova token descriptions are exported as DTCG `$description` values.
+- **colorFormat:** Defaults to `hex` for compatibility. Set to `structured` to emit DTCG color objects with sRGB components, alpha, and a hex fallback.

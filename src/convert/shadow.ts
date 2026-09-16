@@ -1,5 +1,5 @@
 import { ExporterConfiguration } from "../../config"
-import { toHexString, toStructuredColor, SupernovaColorLike } from "./color"
+import { colorValueToDtcg, SupernovaColorLike, ColorReferenceResolver } from "./color"
 import { formatFlatDimension, formatStructuredDimension, isPxOrRemUnit } from "../util/units"
 
 /**
@@ -23,7 +23,7 @@ export type ShadowConversionInput = {
   type: string // e.g. "outer" | "inner" -- verify against SDK
 }
 
-export function convertShadow(input: ShadowConversionInput | ShadowConversionInput[], config: ExporterConfiguration): { value: Record<string, unknown>[]; warnings: string[] } {
+export function convertShadow(input: ShadowConversionInput | ShadowConversionInput[], config: ExporterConfiguration, resolveReference?: ColorReferenceResolver): { value: Record<string, unknown>[]; warnings: string[] } {
   const warnings: string[] = []
   const structured = config.valueFormat === "structured"
 
@@ -39,10 +39,11 @@ export function convertShadow(input: ShadowConversionInput | ShadowConversionInp
     const combinedColor: SupernovaColorLike = {
       color: layer.color.color,
       opacity: { measure: (layer.color.opacity?.measure ?? 1) * (layer.opacity?.measure ?? 1) },
+      referencedTokenId: layer.color.referencedTokenId,
     }
 
     const value: Record<string, unknown> = {
-      color: structured ? toStructuredColor(combinedColor) : toHexString(combinedColor),
+      color: colorValueToDtcg(combinedColor, config, resolveReference),
       offsetX: dim(layer.x, "offsetX"),
       offsetY: dim(layer.y, "offsetY"),
       blur: dim(layer.radius, "blur"),
