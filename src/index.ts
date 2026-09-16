@@ -11,7 +11,7 @@ import { FileHelper } from "@supernovaio/export-helpers";
 
 import { buildDtcgTree, PlacedToken } from "./build-tree";
 import { convertToken, normalizeTokenType } from "./convert";
-import { resolveTokenPath, MinimalGroup } from "./util/path";
+import { pathToAliasReference, resolveTokenPath, MinimalGroup } from "./util/path";
 
 export const exportConfiguration = Pulsar.exportConfig<ExporterConfiguration>();
 
@@ -105,9 +105,21 @@ Pulsar.export(
 
     const placedTokens: PlacedToken[] = [];
     const warnings: string[] = [];
+    const tokenPathsById = new Map<string, string>();
 
     for (const token of tokens) {
       const typedToken = token as AnyToken;
+      const path = resolveTokenPath(typedToken as any, groupsById);
+      tokenPathsById.set(typedToken.id, pathToAliasReference(path));
+      tokenPathsById.set(typedToken.idInVersion, pathToAliasReference(path));
+    }
+
+    for (const token of tokens) {
+      const typedToken = token as AnyToken;
+      const referencedTokenId = (typedToken.value as any)?.referencedTokenId;
+      const reference = referencedTokenId
+        ? tokenPathsById.get(referencedTokenId)
+        : undefined;
 
       const converted = convertToken(
         typedToken.tokenType,
@@ -115,6 +127,7 @@ Pulsar.export(
         typedToken.description,
         typedToken.value,
         exportConfiguration,
+        reference,
       );
 
       warnings.push(...converted.warnings);

@@ -40,6 +40,7 @@ export function convertToken(
   description: string | undefined,
   value: any,
   config: ExporterConfiguration,
+  reference?: string,
 ): ConversionResult {
   const warnings: string[] = [];
   const normalizedTokenType = normalizeTokenType(tokenType);
@@ -49,7 +50,7 @@ export function convertToken(
     $value: unknown,
     extensions?: Record<string, unknown>,
   ): DtcgToken => {
-    const token: DtcgToken = { $type: dtcgType, $value };
+    const token: DtcgToken = { $type: dtcgType, $value: reference ?? $value };
     if (config.includeDescriptions && description) token.$description = description;
     if (extensions && config.preserveVendorExtensions) {
       token.$extensions = { [EXTENSION_NAMESPACE]: extensions };
