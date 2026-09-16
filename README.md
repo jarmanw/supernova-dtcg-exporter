@@ -30,3 +30,4 @@ Given any design system, the exporter will produce CSS color definitions in the 
 Here is a list of all the configuration options this exporter provides:
 
 - **generateDisclaimer:** Toggle to show a disclaimer indicating the file is auto-generated.
+- **includeDescriptions:** Toggle whether Supernova token descriptions are exported as DTCG `$description` values.

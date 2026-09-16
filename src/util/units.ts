@@ -11,7 +11,9 @@
 export const UNIT_TO_DTCG_LENGTH: Record<string, "px" | "rem" | null> = {
   px: "px",
   pixels: "px",
+  Pixels: "px",
   rem: "rem",
+  Rem: "rem",
   // DTCG's `dimension` type (this draft) only permits "px" or "rem".
   // Anything else has no direct home -- null signals "cannot express as
   // a spec-legal dimension, fall back to string/number + a warning".

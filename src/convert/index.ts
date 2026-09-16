@@ -50,7 +50,7 @@ export function convertToken(
     extensions?: Record<string, unknown>,
   ): DtcgToken => {
     const token: DtcgToken = { $type: dtcgType, $value };
-    if (description) token.$description = description;
+    if (config.includeDescriptions && description) token.$description = description;
     if (extensions && config.preserveVendorExtensions) {
       token.$extensions = { [EXTENSION_NAMESPACE]: extensions };
     }
