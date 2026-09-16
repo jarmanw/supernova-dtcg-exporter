@@ -33,7 +33,6 @@ export function toStructuredColor(value: SupernovaColorLike): {
   colorSpace: "srgb"
   components: [number, number, number]
   alpha?: number
-  hex: string
 } {
   const r = to255(value.color.r) / 255
   const g = to255(value.color.g) / 255
@@ -43,11 +42,9 @@ export function toStructuredColor(value: SupernovaColorLike): {
     colorSpace: "srgb"
     components: [number, number, number]
     alpha?: number
-    hex: string
   } = {
     colorSpace: "srgb",
     components: [round(r), round(g), round(b)],
-    hex: toHexString(value),
   }
   if (a < 1) structured.alpha = round(a)
   return structured

@@ -42,6 +42,7 @@ export function convertToken(
   config: ExporterConfiguration,
 ): ConversionResult {
   const warnings: string[] = [];
+  const normalizedTokenType = normalizeTokenType(tokenType);
 
   const base = (
     dtcgType: DtcgType,
@@ -57,7 +58,7 @@ export function convertToken(
   };
 
   // --- Color -------------------------------------------------------------
-  if (tokenType === "color") {
+  if (normalizedTokenType === "color") {
     const v = value as SupernovaColorLike;
     const $value =
       config.valueFormat === "structured"
@@ -67,7 +68,7 @@ export function convertToken(
   }
 
   // --- Dimension family ----------------------------------------------------
-  if (DIMENSION_FAMILY_TYPES.has(tokenType)) {
+  if (DIMENSION_FAMILY_TYPES.has(normalizedTokenType)) {
     const v = value as { measure: number; unit: string };
     if (!isPxOrRemUnit(v.unit)) {
       warnings.push(
@@ -83,7 +84,7 @@ export function convertToken(
   }
 
   // --- Duration ------------------------------------------------------------
-  if (tokenType === "duration") {
+  if (normalizedTokenType === "duration") {
     const v = value as { measure: number; unit: string };
     return {
       token: base("duration", formatDuration(v.measure, v.unit)),
@@ -92,17 +93,17 @@ export function convertToken(
   }
 
   // --- Number-ish (opacity, zIndex) ----------------------------------------
-  if (tokenType === "opacity" || tokenType === "zIndex") {
+  if (normalizedTokenType === "opacity" || normalizedTokenType === "zIndex") {
     const v = value as { measure: number };
     return { token: base("number", v.measure), warnings };
   }
 
   // --- Font family / weight --------------------------------------------------
-  if (tokenType === "fontFamily") {
+  if (normalizedTokenType === "fontFamily") {
     const v = value as { text: string };
     return { token: base("fontFamily", v.text), warnings };
   }
-  if (tokenType === "fontWeight") {
+  if (normalizedTokenType === "fontWeight") {
     const v = value as { text: string };
     const result = normalizeFontWeight(v.text);
     if (result.warning) warnings.push(`"${name}": ${result.warning}`);
@@ -110,13 +111,13 @@ export function convertToken(
   }
 
   // --- String / product copy ------------------------------------------------
-  if (tokenType === "string" || tokenType === "productCopy") {
+  if (normalizedTokenType === "string" || normalizedTokenType === "productCopy") {
     const v = value as { text: string };
     return { token: base("string", v.text), warnings };
   }
 
   // --- Composite: typography -------------------------------------------------
-  if (tokenType === "typography") {
+  if (normalizedTokenType === "typography") {
     const v = value as TypographyConversionInput;
     const fw = normalizeFontWeight(v.fontWeight.text);
     if (fw.warning) warnings.push(`"${name}": ${fw.warning}`);
@@ -126,7 +127,7 @@ export function convertToken(
   }
 
   // --- Composite: shadow -------------------------------------------------------
-  if (tokenType === "shadow") {
+  if (normalizedTokenType === "shadow") {
     const v = value as ShadowConversionInput;
     const result = convertShadow(v, config);
     warnings.push(...result.warnings.map((w) => `"${name}": ${w}`));
@@ -134,7 +135,7 @@ export function convertToken(
   }
 
   // --- Composite: border ---------------------------------------------------
-  if (tokenType === "border") {
+  if (normalizedTokenType === "border") {
     const v = value as BorderConversionInput;
     const result = convertBorder(v, config);
     warnings.push(...result.warnings.map((w) => `"${name}": ${w}`));
@@ -142,7 +143,7 @@ export function convertToken(
   }
 
   // --- Composite: gradient -------------------------------------------------
-  if (tokenType === "gradient") {
+  if (normalizedTokenType === "gradient") {
     const v = value as GradientConversionInput;
     const result = convertGradient(v, config);
     warnings.push(...result.warnings.map((w) => `"${name}": ${w}`));
@@ -170,4 +171,11 @@ export function convertToken(
     token: base("string", rawText, { originalTokenType: tokenType }),
     warnings,
   };
+}
+
+export function normalizeTokenType(tokenType: string): string {
+  if (tokenType === "BorderRadius") return "radius"
+  return tokenType.length > 0
+    ? `${tokenType[0].toLowerCase()}${tokenType.slice(1)}`
+    : tokenType
 }

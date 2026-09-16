@@ -10,7 +10,7 @@ import { ExporterConfiguration } from "../config";
 import { FileHelper } from "@supernovaio/export-helpers";
 
 import { buildDtcgTree, PlacedToken } from "./build-tree";
-import { convertToken } from "./convert";
+import { convertToken, normalizeTokenType } from "./convert";
 import { resolveTokenPath, MinimalGroup } from "./util/path";
 
 export const exportConfiguration = Pulsar.exportConfig<ExporterConfiguration>();
@@ -129,6 +129,7 @@ Pulsar.export(
         // discarded every token's name and collided tokens at their
         // parent group's key.
         path: resolveTokenPath(typedToken as any, groupsById),
+        tokenType: normalizeTokenType(typedToken.tokenType),
         token: converted.token,
       });
     }
@@ -137,20 +138,35 @@ Pulsar.export(
     // Build DTCG document
     // ------------------------------------------------------------
 
-    const document = buildDtcgTree(placedTokens) as Record<string, unknown>;
-
-    const content = JSON.stringify(document, null, 2);
-
     // ------------------------------------------------------------
     // Output
     // ------------------------------------------------------------
 
-    return [
-      FileHelper.createTextFile({
+    if (exportConfiguration.outputFileStructure === "single-file") {
+      const document = buildDtcgTree(placedTokens);
+      return [
+        FileHelper.createTextFile({
+          relativePath: "./",
+          fileName: `${exportConfiguration.outputFileName}.json`,
+          content: JSON.stringify(document, null, 2),
+        }),
+      ];
+    }
+
+    const tokensByType = new Map<string, PlacedToken[]>();
+    for (const placedToken of placedTokens) {
+      const typeTokens = tokensByType.get(placedToken.tokenType) ?? [];
+      typeTokens.push(placedToken);
+      tokensByType.set(placedToken.tokenType, typeTokens);
+    }
+
+    return [...tokensByType.entries()].map(([tokenType, typeTokens]) => {
+      const document = buildDtcgTree(typeTokens);
+      return FileHelper.createTextFile({
         relativePath: "./",
-        fileName: "tokens.json",
-        content,
-      }),
-    ];
+        fileName: `${tokenType}.tokens.json`,
+        content: JSON.stringify(document, null, 2),
+      });
+    });
   },
 );

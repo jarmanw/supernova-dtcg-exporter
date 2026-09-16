@@ -2,6 +2,7 @@ import { DtcgDocument, DtcgToken } from "./dtcg-types"
 
 export type PlacedToken = {
   path: string[] // e.g. ["color", "ui-elements", "primary"]
+  tokenType: string
   token: DtcgToken
 }
 
