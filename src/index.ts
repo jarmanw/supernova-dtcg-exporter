@@ -141,11 +141,6 @@ Pulsar.export(
 
     const content = JSON.stringify(document, null, 2);
 
-    if (warnings.length) {
-      console.warn(`DTCG export completed with ${warnings.length} warning(s):`);
-      for (const w of warnings) console.warn(`  - ${w}`);
-    }
-
     // ------------------------------------------------------------
     // Output
     // ------------------------------------------------------------
