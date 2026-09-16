@@ -7,6 +7,13 @@
     "description": "When enabled, a disclaimer showing the fact that the file was generated automatically and should not be changed manually will appear in all style styles"
   },
   {
+    "key": "includeDescriptions",
+    "type": "boolean",
+    "default": true,
+    "title": "Include token descriptions",
+    "description": "When enabled, Supernova token descriptions are exported as DTCG $description values."
+  },
+  {
     "key": "valueFormat",
     "type": "enum",
     "options": ["flat", "structured"],
