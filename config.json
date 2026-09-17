@@ -4,6 +4,7 @@
     "type": "boolean",
     "default": false,
     "title": "Show Generated File Disclaimer",
+    "category": "File structure",
     "description": "When enabled, a disclaimer showing the fact that the file was generated automatically and should not be changed manually will appear in all style styles"
   },
   {
@@ -11,6 +12,7 @@
     "type": "boolean",
     "default": true,
     "title": "Include token descriptions",
+    "category": "Token values",
     "description": "When enabled, Supernova token descriptions are exported as DTCG $description values."
   },
   {
@@ -19,6 +21,7 @@
     "options": ["hex", "structured"],
     "default": "hex",
     "title": "Color format",
+    "category": "Token values",
     "description": "'hex' emits simple hex color strings for broad compatibility. 'structured' emits DTCG color objects with sRGB components, alpha, and a hex fallback."
   },
   {
@@ -27,6 +30,7 @@
     "options": ["flat", "structured"],
     "default": "structured",
     "title": "Dimension value format",
+    "category": "Token values",
     "description": "'flat' emits legacy-compatible dimension strings (\"16px\") and 'structured' emits dimension objects ({value,unit})."
   },
   {
@@ -35,6 +39,7 @@
     "options": ["single-file", "per-type"],
     "default": "per-type",
     "title": "Output file structure",
+    "category": "File structure",
     "description": "'single-file' writes one tokens.json. 'per-type' writes one file per Supernova token type (color.tokens.json, typography.tokens.json, etc)."
   },
   {
@@ -42,6 +47,7 @@
     "type": "string",
     "default": "tokens",
     "title": "Output file name (single-file mode)",
+    "category": "File structure",
     "description": "Base name used for the single output file, without extension."
   },
   {
@@ -49,6 +55,7 @@
     "type": "boolean",
     "default": true,
     "title": "Preserve unsupported properties in $extensions",
+    "category": "Token types",
     "description": "When a Supernova property has no equivalent in the DTCG spec (e.g. border position, gradient angle/type, typography textCase), store it under a vendor-namespaced $extensions key instead of silently dropping it."
   },
   {
@@ -56,6 +63,7 @@
     "type": "boolean",
     "default": false,
     "title": "Include token types with no DTCG equivalent",
+    "category": "Token types",
     "description": "When enabled, tokens with no sensible DTCG $type (blur, visibility, textCase, textDecoration as standalone tokens) are exported as $type: \"string\" with their raw value, tagged in $extensions. When disabled, they are skipped and reported in the build log."
   }
 ]
