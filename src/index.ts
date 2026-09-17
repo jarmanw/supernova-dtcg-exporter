@@ -189,7 +189,7 @@ Pulsar.export(
           const document = buildDtcgTree(typeTokens);
           return FileHelper.createTextFile({
             relativePath: outputPath,
-            fileName: `${tokenType}.tokens.json`,
+            fileName: `${tokenType}.json`,
             content: JSON.stringify(document, null, 2),
           });
         }),

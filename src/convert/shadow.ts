@@ -15,10 +15,10 @@ import { formatFlatDimension, formatStructuredDimension, isPxOrRemUnit } from ".
  */
 export type ShadowConversionInput = {
   color: SupernovaColorLike
-  x: { measure: number; unit: string }
-  y: { measure: number; unit: string }
-  radius: { measure: number; unit: string }
-  spread: { measure: number; unit: string }
+  x: number | { measure: number; unit: string }
+  y: number | { measure: number; unit: string }
+  radius: number | { measure: number; unit: string }
+  spread: number | { measure: number; unit: string }
   opacity?: { measure: number }
   type: string // e.g. "outer" | "inner" -- verify against SDK
 }
@@ -28,7 +28,12 @@ export function convertShadow(input: ShadowConversionInput | ShadowConversionInp
   const structured = config.valueFormat === "structured"
 
   const values = (Array.isArray(input) ? input : [input]).map((layer) => {
-    const dim = (d: { measure: number; unit: string }, label: string) => {
+    const dim = (d: number | { measure: number; unit: string }, label: string) => {
+      if (typeof d === "number") {
+        return structured
+          ? formatStructuredDimension(d, "px")
+          : formatFlatDimension(d, "px")
+      }
       if (!isPxOrRemUnit(d.unit)) {
         warnings.push(`Shadow ${label} unit "${d.unit}" is not px/rem -- exported as a raw number.`)
         return d.measure
