@@ -13,11 +13,11 @@ import { formatFlatDimension, formatStructuredDimension, isPxOrRemUnit } from ".
  * just in that exporter.
  */
 export type TypographyConversionInput = {
-  fontFamily: { text: string }
-  fontWeight: { text: string }
-  fontSize: { measure: number; unit: string }
-  letterSpacing: { measure: number; unit: string } | null
-  lineHeight: { measure: number; unit: string } | null
+  fontFamily: { text: string; referencedTokenId?: string | null }
+  fontWeight: { text: string; referencedTokenId?: string | null }
+  fontSize: { measure: number; unit: string; referencedTokenId?: string | null }
+  letterSpacing: { measure: number; unit: string; referencedTokenId?: string | null } | null
+  lineHeight: { measure: number; unit: string; referencedTokenId?: string | null } | null
   textCase?: { value: string }
   textDecoration?: { value: string }
   paragraphIndent?: { measure: number; unit: string }
@@ -29,31 +29,34 @@ export type TypographyConversionResult = {
   warnings: string[]
 }
 
+export type TypographyReferenceResolver = (tokenId: string) => string | undefined
+
 export function convertTypography(
   input: TypographyConversionInput,
   fontWeightNumber: number | string,
   config: ExporterConfiguration,
+  resolveReference?: TypographyReferenceResolver,
 ): TypographyConversionResult {
   const warnings: string[] = []
   const structured = config.valueFormat === "structured"
 
   const value: Record<string, unknown> = {
-    fontFamily: input.fontFamily.text,
-    fontWeight: fontWeightNumber,
+    fontFamily: referencedValue(input.fontFamily, resolveReference) ?? input.fontFamily.text,
+    fontWeight: referencedValue(input.fontWeight, resolveReference) ?? fontWeightNumber,
   }
 
-  value.fontSize = isPxOrRemUnit(input.fontSize.unit)
+  value.fontSize = referencedValue(input.fontSize, resolveReference) ?? (isPxOrRemUnit(input.fontSize.unit)
     ? structured
       ? formatStructuredDimension(input.fontSize.measure, input.fontSize.unit)
       : formatFlatDimension(input.fontSize.measure, input.fontSize.unit)
-    : (warnings.push(`fontSize unit "${input.fontSize.unit}" is not px/rem -- left as raw number.`), input.fontSize.measure)
+    : (warnings.push(`fontSize unit "${input.fontSize.unit}" is not px/rem -- left as raw number.`), input.fontSize.measure))
 
   if (input.letterSpacing) {
-    value.letterSpacing = isPxOrRemUnit(input.letterSpacing.unit)
+    value.letterSpacing = referencedValue(input.letterSpacing, resolveReference) ?? (isPxOrRemUnit(input.letterSpacing.unit)
       ? structured
         ? formatStructuredDimension(input.letterSpacing.measure, input.letterSpacing.unit)
         : formatFlatDimension(input.letterSpacing.measure, input.letterSpacing.unit)
-      : input.letterSpacing.measure
+      : input.letterSpacing.measure)
   }
 
   // DTCG lineHeight is a bare unitless multiplier of fontSize. Supernova
@@ -61,7 +64,10 @@ export function convertTypography(
   // absolute px value (-> not representable as a multiplier without also
   // knowing fontSize at read time; we pass the raw number through and warn).
   if (input.lineHeight) {
-    if (input.lineHeight.unit === "percent") {
+    const lineHeightReference = referencedValue(input.lineHeight, resolveReference)
+    if (lineHeightReference) {
+      value.lineHeight = lineHeightReference
+    } else if (input.lineHeight.unit === "percent") {
       value.lineHeight = round(input.lineHeight.measure / 100)
     } else if (input.lineHeight.unit === "raw") {
       value.lineHeight = round(input.lineHeight.measure)
@@ -89,4 +95,12 @@ export function convertTypography(
 
 function round(n: number): number {
   return Math.round(n * 1000) / 1000
+}
+
+function referencedValue(
+  value: { referencedTokenId?: string | null },
+  resolveReference?: TypographyReferenceResolver,
+): string | undefined {
+  if (!value.referencedTokenId) return undefined
+  return resolveReference?.(value.referencedTokenId) ?? `{${value.referencedTokenId}}`
 }

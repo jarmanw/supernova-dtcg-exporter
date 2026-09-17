@@ -120,7 +120,7 @@ export function convertToken(
     const v = value as TypographyConversionInput;
     const fw = normalizeFontWeight(v.fontWeight.text);
     if (fw.warning) warnings.push(`"${name}": ${fw.warning}`);
-    const result = convertTypography(v, fw.value, config);
+    const result = convertTypography(v, fw.value, config, resolveReference);
     warnings.push(...result.warnings.map((w) => `"${name}": ${w}`));
     return { token: base("typography", result.value), warnings };
   }
