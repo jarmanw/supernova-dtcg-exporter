@@ -1,11 +1,21 @@
 [
   {
-    "key": "generateDisclaimer",
-    "type": "boolean",
-    "default": false,
-    "title": "Show Generated File Disclaimer",
-    "category": "File structure",
-    "description": "When enabled, a disclaimer showing the fact that the file was generated automatically and should not be changed manually will appear in all style styles"
+    "key": "colorFormat",
+    "type": "enum",
+    "options": ["Hex", "DTCG Format"],
+    "default": "hex",
+    "title": "Color format",
+    "category": "Token values",
+    "description": "'hex' emits simple hex color strings for broad compatibility. 'structured' emits DTCG color objects with sRGB components, alpha, and a hex fallback."
+  },
+  {
+    "key": "valueFormat",
+    "type": "enum",
+    "options": ["Flat", "DTCG Format"],
+    "default": "structured",
+    "title": "Dimension value format",
+    "category": "Token values",
+    "description": "'flat' emits legacy-compatible dimension strings (\"16px\") and 'structured' emits dimension objects ({value,unit})."
   },
   {
     "key": "includeDescriptions",
@@ -16,22 +26,20 @@
     "description": "When enabled, Supernova token descriptions are exported as DTCG $description values."
   },
   {
-    "key": "colorFormat",
-    "type": "enum",
-    "options": ["hex", "structured"],
-    "default": "hex",
-    "title": "Color format",
-    "category": "Token values",
-    "description": "'hex' emits simple hex color strings for broad compatibility. 'structured' emits DTCG color objects with sRGB components, alpha, and a hex fallback."
+    "key": "preserveVendorExtensions",
+    "type": "boolean",
+    "default": true,
+    "title": "Preserve unsupported properties in $extensions",
+    "category": "Token types",
+    "description": "When a Supernova property has no equivalent in the DTCG spec (e.g. border position, gradient angle/type, typography textCase), store it under a vendor-namespaced $extensions key instead of silently dropping it."
   },
   {
-    "key": "valueFormat",
-    "type": "enum",
-    "options": ["flat", "structured"],
-    "default": "structured",
-    "title": "Dimension value format",
-    "category": "Token values",
-    "description": "'flat' emits legacy-compatible dimension strings (\"16px\") and 'structured' emits dimension objects ({value,unit})."
+    "key": "includeUnmappableTokenTypes",
+    "type": "boolean",
+    "default": false,
+    "title": "Include token types with no DTCG equivalent",
+    "category": "Token types",
+    "description": "When enabled, tokens with no sensible DTCG $type (blur, visibility, textCase, textDecoration as standalone tokens) are exported as $type: \"string\" with their raw value, tagged in $extensions. When disabled, they are skipped and reported in the build log."
   },
   {
     "key": "outputFileStructure",
@@ -51,19 +59,11 @@
     "description": "Base name used for the single output file, without extension."
   },
   {
-    "key": "preserveVendorExtensions",
-    "type": "boolean",
-    "default": true,
-    "title": "Preserve unsupported properties in $extensions",
-    "category": "Token types",
-    "description": "When a Supernova property has no equivalent in the DTCG spec (e.g. border position, gradient angle/type, typography textCase), store it under a vendor-namespaced $extensions key instead of silently dropping it."
-  },
-  {
-    "key": "includeUnmappableTokenTypes",
+    "key": "generateDisclaimer",
     "type": "boolean",
     "default": false,
-    "title": "Include token types with no DTCG equivalent",
-    "category": "Token types",
-    "description": "When enabled, tokens with no sensible DTCG $type (blur, visibility, textCase, textDecoration as standalone tokens) are exported as $type: \"string\" with their raw value, tagged in $extensions. When disabled, they are skipped and reported in the build log."
+    "title": "Show Generated File Disclaimer",
+    "category": "File structure",
+    "description": "When enabled, a disclaimer showing the fact that the file was generated automatically and should not be changed manually will appear in all style styles"
   }
 ]
