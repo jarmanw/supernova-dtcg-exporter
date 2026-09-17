@@ -2,7 +2,7 @@
   {
     "key": "colorFormat",
     "type": "enum",
-    "options": ["Hex", "DTCG Format"],
+    "options": ["hex", "structured"],
     "default": "hex",
     "title": "Color format",
     "category": "Token values",
@@ -11,7 +11,7 @@
   {
     "key": "valueFormat",
     "type": "enum",
-    "options": ["Flat", "DTCG Format"],
+    "options": ["flat", "structured"],
     "default": "structured",
     "title": "Dimension value format",
     "category": "Token values",
