@@ -11,6 +11,8 @@ export type ExporterConfiguration = {
   valueFormat: "flat" | "structured"
   outputFileStructure: "single-file" | "per-type"
   outputFileName: string
+  baseOutputPath: string
+  themeOutputPath: string
   preserveVendorExtensions: boolean
   includeUnmappableTokenTypes: boolean
 }

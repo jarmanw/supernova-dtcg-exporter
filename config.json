@@ -59,6 +59,22 @@
     "description": "Base name used for the single output file, without extension."
   },
   {
+    "key": "baseOutputPath",
+    "type": "string",
+    "default": "./",
+    "title": "Base output folder",
+    "category": "File structure",
+    "description": "Relative folder for exports without an applied theme."
+  },
+  {
+    "key": "themeOutputPath",
+    "type": "string",
+    "default": "themes/{theme}",
+    "title": "Theme output folder",
+    "category": "File structure",
+    "description": "Relative folder for themed exports. Use {theme} to insert the selected theme name."
+  },
+  {
     "key": "generateDisclaimer",
     "type": "boolean",
     "default": false,

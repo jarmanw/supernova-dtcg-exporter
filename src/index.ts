@@ -32,6 +32,7 @@ Pulsar.export(
 
     let tokens = await sdk.tokens.getTokens(remoteVersionIdentifier);
     let tokenGroups = await sdk.tokens.getTokenGroups(remoteVersionIdentifier);
+    let appliedThemeName: string | undefined;
 
     // ------------------------------------------------------------
     // Apply brand filtering
@@ -72,6 +73,10 @@ Pulsar.export(
 
         return theme;
       });
+
+      appliedThemeName = themesToApply
+        .map((theme: any) => String(theme.name ?? theme.idInVersion ?? theme.id))
+        .join("-");
 
       tokens = sdk.tokens.computeTokensByApplyingThemes(
         tokens,
@@ -156,11 +161,15 @@ Pulsar.export(
     // Output
     // ------------------------------------------------------------
 
+    const outputPath = appliedThemeName
+      ? resolveOutputPath(exportConfiguration.themeOutputPath, appliedThemeName)
+      : resolveOutputPath(exportConfiguration.baseOutputPath);
+
     if (exportConfiguration.outputFileStructure === "single-file") {
       const document = buildDtcgTree(placedTokens);
       return [
         FileHelper.createTextFile({
-          relativePath: "./",
+          relativePath: outputPath,
           fileName: `${exportConfiguration.outputFileName}.json`,
           content: JSON.stringify(document, null, 2),
         }),
@@ -177,10 +186,19 @@ Pulsar.export(
     return [...tokensByType.entries()].map(([tokenType, typeTokens]) => {
       const document = buildDtcgTree(typeTokens);
       return FileHelper.createTextFile({
-        relativePath: "./",
+        relativePath: outputPath,
         fileName: `${tokenType}.tokens.json`,
         content: JSON.stringify(document, null, 2),
       });
     });
   },
 );
+
+function resolveOutputPath(template: string, themeName?: string): string {
+  const path = template.replace(
+    "{theme}",
+    themeName ? themeName.replace(/[\\/]/g, "-") : "",
+  );
+  const normalized = path.replace(/\/{2,}/g, "/").replace(/\/$/, "");
+  return normalized === "." || normalized === "" ? "./" : `${normalized}/`;
+}
