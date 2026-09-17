@@ -34,6 +34,8 @@ const DIMENSION_FAMILY_TYPES = new Set([
   "radius",
 ]);
 
+const LINE_HEIGHT_TYPE = "lineHeight";
+
 export function convertToken(
   tokenType: string,
   name: string,
@@ -79,6 +81,27 @@ export function convertToken(
       config.valueFormat === "structured"
         ? formatStructuredDimension(v.measure, v.unit)
         : formatFlatDimension(v.measure, v.unit);
+    return { token: base("dimension", $value), warnings };
+  }
+
+  // Keep standalone line-height values as dimensions for Style Dictionary
+  // compatibility, even though DTCG defines line-height as a number.
+  if (normalizedTokenType === LINE_HEIGHT_TYPE) {
+    const v = value as { measure: number; unit: string };
+    if (isPxOrRemUnit(v.unit)) {
+      const $value =
+        config.valueFormat === "structured"
+          ? formatStructuredDimension(v.measure, v.unit)
+          : formatFlatDimension(v.measure, v.unit);
+      return { token: base("dimension", $value), warnings };
+    }
+
+    warnings.push(
+      `"${name}" (${tokenType}) has unit "${v.unit}"; exported as a dimension for Style Dictionary compatibility.`,
+    );
+    const $value = config.valueFormat === "structured"
+      ? { value: v.measure, unit: v.unit }
+      : `${v.measure}${v.unit === "raw" ? "px" : "%"}`;
     return { token: base("dimension", $value), warnings };
   }
 
