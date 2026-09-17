@@ -32,7 +32,6 @@ Pulsar.export(
 
     let tokens = await sdk.tokens.getTokens(remoteVersionIdentifier);
     let tokenGroups = await sdk.tokens.getTokenGroups(remoteVersionIdentifier);
-    let appliedThemeName: string | undefined;
 
     // ------------------------------------------------------------
     // Apply brand filtering
@@ -55,6 +54,12 @@ Pulsar.export(
       tokenGroups = tokenGroups.filter((group) => group.brandId === brand.id);
     }
 
+    const baseTokens = tokens;
+    const tokenSets: Array<{ tokens: typeof tokens; themeName?: string }> = [];
+    if (exportConfiguration.includeBaseValues || !context.themeIds?.length) {
+      tokenSets.push({ tokens: baseTokens });
+    }
+
     // ------------------------------------------------------------
     // Apply themes
     // ------------------------------------------------------------
@@ -74,15 +79,18 @@ Pulsar.export(
         return theme;
       });
 
-      appliedThemeName = themesToApply
+      const appliedThemeName = themesToApply
         .map((theme: any) => String(theme.name ?? theme.idInVersion ?? theme.id))
         .join("-");
 
-      tokens = sdk.tokens.computeTokensByApplyingThemes(
-        tokens,
-        tokens,
-        themesToApply,
-      );
+      tokenSets.push({
+        tokens: sdk.tokens.computeTokensByApplyingThemes(
+          baseTokens,
+          baseTokens,
+          themesToApply,
+        ),
+        themeName: appliedThemeName,
+      });
     }
 
     // ------------------------------------------------------------
@@ -104,22 +112,22 @@ Pulsar.export(
       ]),
     );
 
-    // ------------------------------------------------------------
-    // Convert Supernova tokens into DTCG tokens
-    // ------------------------------------------------------------
+    const outputFiles: AnyOutputFile[] = [];
 
-    const placedTokens: PlacedToken[] = [];
-    const warnings: string[] = [];
-    const tokenPathsById = new Map<string, string>();
+    for (const tokenSet of tokenSets) {
+      const placedTokens: PlacedToken[] = [];
+      const warnings: string[] = [];
+      const tokenPathsById = new Map<string, string>();
+      const tokensForOutput = tokenSet.tokens;
 
-    for (const token of tokens) {
+      for (const token of tokensForOutput) {
       const typedToken = token as AnyToken;
       const path = resolveTokenPath(typedToken as any, groupsById);
       tokenPathsById.set(typedToken.id, pathToAliasReference(path));
       tokenPathsById.set(typedToken.idInVersion, pathToAliasReference(path));
-    }
+      }
 
-    for (const token of tokens) {
+      for (const token of tokensForOutput) {
       const typedToken = token as AnyToken;
       const referencedTokenId = (typedToken.value as any)?.referencedTokenId;
       const reference = referencedTokenId
@@ -151,46 +159,44 @@ Pulsar.export(
         tokenType: normalizeTokenType(typedToken.tokenType),
         token: converted.token,
       });
-    }
+      }
 
-    // ------------------------------------------------------------
-    // Build DTCG document
-    // ------------------------------------------------------------
+      const outputPath = tokenSet.themeName
+        ? resolveOutputPath(exportConfiguration.themeOutputPath, tokenSet.themeName)
+        : resolveOutputPath(exportConfiguration.baseOutputPath);
 
-    // ------------------------------------------------------------
-    // Output
-    // ------------------------------------------------------------
-
-    const outputPath = appliedThemeName
-      ? resolveOutputPath(exportConfiguration.themeOutputPath, appliedThemeName)
-      : resolveOutputPath(exportConfiguration.baseOutputPath);
-
-    if (exportConfiguration.outputFileStructure === "single-file") {
-      const document = buildDtcgTree(placedTokens);
-      return [
+      if (exportConfiguration.outputFileStructure === "single-file") {
+        const document = buildDtcgTree(placedTokens);
+        outputFiles.push(
         FileHelper.createTextFile({
           relativePath: outputPath,
           fileName: `${exportConfiguration.outputFileName}.json`,
           content: JSON.stringify(document, null, 2),
         }),
-      ];
+        );
+        continue;
+      }
+
+      const tokensByType = new Map<string, PlacedToken[]>();
+      for (const placedToken of placedTokens) {
+        const typeTokens = tokensByType.get(placedToken.tokenType) ?? [];
+        typeTokens.push(placedToken);
+        tokensByType.set(placedToken.tokenType, typeTokens);
+      }
+
+      outputFiles.push(
+        ...[...tokensByType.entries()].map(([tokenType, typeTokens]) => {
+          const document = buildDtcgTree(typeTokens);
+          return FileHelper.createTextFile({
+            relativePath: outputPath,
+            fileName: `${tokenType}.tokens.json`,
+            content: JSON.stringify(document, null, 2),
+          });
+        }),
+      );
     }
 
-    const tokensByType = new Map<string, PlacedToken[]>();
-    for (const placedToken of placedTokens) {
-      const typeTokens = tokensByType.get(placedToken.tokenType) ?? [];
-      typeTokens.push(placedToken);
-      tokensByType.set(placedToken.tokenType, typeTokens);
-    }
-
-    return [...tokensByType.entries()].map(([tokenType, typeTokens]) => {
-      const document = buildDtcgTree(typeTokens);
-      return FileHelper.createTextFile({
-        relativePath: outputPath,
-        fileName: `${tokenType}.tokens.json`,
-        content: JSON.stringify(document, null, 2),
-      });
-    });
+    return outputFiles;
   },
 );
 

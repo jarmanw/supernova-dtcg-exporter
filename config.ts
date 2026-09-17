@@ -13,6 +13,7 @@ export type ExporterConfiguration = {
   outputFileName: string
   baseOutputPath: string
   themeOutputPath: string
+  includeBaseValues: boolean
   preserveVendorExtensions: boolean
   includeUnmappableTokenTypes: boolean
 }

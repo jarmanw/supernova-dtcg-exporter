@@ -75,6 +75,14 @@
     "description": "Relative folder for themed exports. Use {theme} to insert the selected theme name."
   },
   {
+    "key": "includeBaseValues",
+    "type": "boolean",
+    "default": true,
+    "title": "Include base values",
+    "category": "File structure",
+    "description": "When enabled, export the unthemed base token set alongside any enabled theme output."
+  },
+  {
     "key": "generateDisclaimer",
     "type": "boolean",
     "default": false,
